@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <!-- 这里取值的时候会调用JSON.stringify() 会对数组中的对象取值  所以对象会收集依赖 -->
+  <div id="app">
+    {{arr}}
+  </div>
+  <script src="vue.js"></script>
+
+  <script>
+    const vm = new Vue({
+      el: '#app',
+      data: {
+        arr: [1,2,3, {a: 1}, ['a','b', []]], //给数组本身增加dep 如果数组新增了某一项，我可以触发dep更新
+        a: {a: 1} //给对象也增加dep，如果后续用户增添了属性 可以触发dep更新
+      }
+    });
+    // vm.arr[0] = 100; //无法检测到  只是重写了数组方法
+    // vm.arr.length = 100; //没有监控到长度变化
+    // console.log(vm._data);
+
+    // 这里注意的是  改变的不是arr属性 而是arr对象的数组对象
+    // vm.arr[3].a = 100 //会更新
+    // vm.arr.push(100) //没有更新
+
+    setTimeout(() => {
+      // vm.a.b = 100
+      // vm.a.__ob__.dep.notify(); //$set原理
+      vm.arr[4].push('c')
+    }, 1000)
+  </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div id="app">
+    {{fullname}}{{fullname}}
+  </div>
+  <script src="vue.js"></script>
+  <script>
+    const vm = new Vue({
+      el: '#app',
+      data: {
+        name: 'zs',
+        age: 13
+      },
+      // 计算属性 依赖的值发生变化才会重新执行用户的方法 计算属性中需要维护一个dirty属性 默认计算属性不会立即执行
+      // 计算属性就是一个defineProperty
+      // 计算属性也是一个watcher 默认渲染会创造一个渲染watcher
+      computed: {
+        fullname() { //defineProperty的get方法
+          console.log('run');
+          return this.name + this.age
+        }
+        // fullname: {
+        //   get() {
+        //     return this.name + this.age
+        //   },
+        //   set(newVal) {
+        //     console.log(newVal);
+        //   }
+        // }
+      }
+    });
+
+    setTimeout(() => {
+      vm.name = '王二麻子'
+    }, 1000)
+  </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div id="app">
+    {{name}}{{age}}
+  </div>
+  <script src="vue.js"></script>
+  <script>
+    const vm = new Vue({
+      el: '#app',
+      data: {
+        name: 'zs',
+        age: 13
+      },
+      watch: {
+        name(newVal, oldVal) {
+          console.log(newVal, oldVal);
+        }
+        // name: 'fn'
+      },
+      // methods: {
+      //   fn(newVal, oldVal) {
+      //     console.log(newVal, oldVal);
+      //   }
+      // },
+    });
+    // 底层就算你写的是上面的方式，也会被转化成 $watch的写法
+    vm.$watch(() => vm.name, (newVal, oldVal) => {
+      console.log(newVal, oldVal);
+    })
+
+    setTimeout(() => {
+      vm.name = '王二麻子'
+    }, 1000)
+  </script>
+</body>
+</html>

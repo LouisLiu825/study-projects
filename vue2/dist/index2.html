@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <!-- 将模板中的属性   增加一个收集器dep -->
+  <!-- 页面渲染时候  我们将渲染逻辑封装到watcher中 vm._update(vm._render()) 这个封装进去 -->
+  <!-- 让dep记住这个watcher，稍后属性变化了可以找到对应的dep中存放的watcher进行重新渲染 -->
+  <!-- 观察者模式 -->
+  <div id="app" style="color:red;background: yellow;">
+    <div style="color: red">
+      {{name}}Hello{{age}} {{num}}
+    </div>
+    <li>world</li>
+  </div>
+  <script src="vue.js"></script>
+  <script>
+    Vue.mixin({
+      created() {
+        console.log('mixin1-created');
+      }
+    })
+    Vue.mixin({
+      created() {
+        console.log('mixin2-created');
+      }
+    })
+    console.log(Vue.options);
+    const vm = new Vue({
+      // data() {
+      //   return {
+      //     name: 'zs',
+      //     age: 20,
+      //     num: '岁',
+      //     adress: {
+      //       city: '上海'
+      //     },
+      //     hobby: ['eat', 'drink', {a: 1}]
+      //   }
+      // },
+      data: {
+        name: 'zs',
+          age: 20,
+          num: '岁',
+          adress: {
+            city: '上海'
+          },
+          hobby: ['eat', 'drink', {a: 1}]
+      },
+      created() {
+        console.log('created');
+      }
+      // el: '#app' // 将数据解析到el元素上
+    })
+    // vm.$mount('#app')
+    // vm.hobby.push({a: 1})
+    // console.log(vm.hobby);
+    // setTimeout(() => {
+    //   // vm.name = '张三';
+    //   // vm.age = 110;
+    //   // vm.num = '岁了';
+    //   vm.date = 2020
+    //   // vm._update(vm._render())
+    // }, 1000);
+      // vm.name = 'zf'
+      // vm.$nextTick(() => {
+      //   console.log(app.innerHTML);
+      // })
+        
+
+    
+    // 1)将数据转换成响应式数据 initState(针对对象来说主要是增加defineProperty,针对数组就是重写方法)
+    // 2）模板编译：将模板先转换成ast语法树，将ast语法树生成**render**方法
+    // 3）调用render函数 会进行取值操作 产生对应的虚拟dom render(){_c('div',null,_v(name))}触发get方法
+    // 4）将虚拟dom渲染成真实dom
+
+    // 1.观察者模式 实现依赖收集
+    // 2.异步更新策略
+    // 3. mixin的实现原理
+  </script>
+</body>
+</html>
