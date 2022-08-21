@@ -4,6 +4,98 @@
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory());
 })(this, (function () { 'use strict';
 
+  // 静态方法
+  var strats = {};
+  var LIFECYCLE = ['beforeCreate', 'created'];
+  LIFECYCLE.forEach(function (hook) {
+    strats[hook] = function (p, c) {
+      if (c) {
+        //如果儿子有 父亲有  让父亲和儿子拼在一起
+        if (p) {
+          return p.concat(c);
+        } else {
+          return [c]; // 儿子有父亲没有 ，则将儿子包装成数组
+        }
+      } else {
+        return p; // 如果儿子没有则用父亲即可
+      }
+    };
+  });
+
+  strats.components = function (parentVal, childVal) {
+    var res = Object.create(parentVal);
+
+    if (childVal) {
+      for (var key in childVal) {
+        res[key] = childVal[key]; //返回的是构造的对象，可以拿到父亲原型上的属性，并且将儿子的都拷贝到自己身上
+      }
+    }
+
+    return res;
+  };
+
+  function mergeOptions(parent, child) {
+    var options = {};
+
+    for (var key in parent) {
+      mergeField(key);
+    }
+
+    for (var _key in child) {
+      if (!parent.hasOwnProperty(_key)) {
+        mergeField(_key);
+      }
+    }
+
+    function mergeField(key) {
+      // 采用策略模式 减少if/else
+      if (strats[key]) {
+        options[key] = strats[key](parent[key], child[key]);
+      } else {
+        // 不在策略中则以儿子为主
+        options[key] = child[key] || parent[key];
+      }
+    }
+
+    return options;
+  }
+
+  function initGlobalAPI(Vue) {
+    Vue.options = {};
+
+    Vue.mixin = function (mixin) {
+      // 将用户选项和全局options进行合并
+      this.options = mergeOptions(this.options, mixin);
+      return this;
+    }; // 可以手动创建组件进行挂载
+
+
+    Vue.extend = function (options) {
+      function Sub() {
+        // 最终使用一个组件，就是new一个实例
+        this._init(); //就是默认对子类进行初始化操作
+
+      }
+
+      Sub.prototype = Object.create(Vue.prototype); // sub.prototype.__proto = Vue.prototype
+
+      Sub.prototype.constructor = Sub; // 希望将用户的传递的参数 和全局的Vue.options来合并
+
+      Sub.options = mergeOptions(Vue.options, options); //保存用户传递的选项
+
+      return Sub;
+    };
+
+    Vue.options.components = {};
+
+    Vue.component = function (id, definition) {
+      // 如果definition已经是一个函数了 说明用户自己调用了Vue.extend
+      definition = typeof definition === 'function' ? definition : Vue.extend(definition);
+      Vue.options.components[id] = definition;
+      console.log(Vue.options.components);
+    };
+  }
+
   function _typeof(obj) {
     "@babel/helpers - typeof";
 
@@ -330,59 +422,6 @@
     return render;
   }
 
-  // 静态方法
-  var strats = {};
-  var LIFECYCLE = ['beforeCreate', 'created'];
-  LIFECYCLE.forEach(function (hook) {
-    strats[hook] = function (p, c) {
-      if (c) {
-        //如果儿子有 父亲有  让父亲和儿子拼在一起
-        if (p) {
-          return p.concat(c);
-        } else {
-          return [c]; // 儿子有父亲没有 ，则将儿子包装成数组
-        }
-      } else {
-        return p; // 如果儿子没有则用父亲即可
-      }
-    };
-  });
-  function mergeOptions(parent, child) {
-    var options = {};
-
-    for (var key in parent) {
-      mergeField(key);
-    }
-
-    for (var _key in child) {
-      if (!parent.hasOwnProperty(_key)) {
-        mergeField(_key);
-      }
-    }
-
-    function mergeField(key) {
-      // 采用策略模式 减少if/else
-      if (strats[key]) {
-        options[key] = strats[key](parent[key], child[key]);
-      } else {
-        // 不在策略中则以儿子为主
-        options[key] = child[key] || parent[key];
-      }
-    }
-
-    return options;
-  }
-
-  function initGlobalAPI(Vue) {
-    Vue.options = {};
-
-    Vue.mixin = function (mixin) {
-      // 将用户选项和全局options进行合并
-      this.options = mergeOptions(this.options, mixin);
-      return this;
-    };
-  }
-
   var id$1 = 0;
 
   var Dep = /*#__PURE__*/function () {
@@ -666,7 +705,9 @@
 
     return vnode.el;
   }
-  function patchProps(el, oldProps, props) {
+  function patchProps(el) {
+    var oldProps = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    var props = arguments.length > 2 ? arguments[2] : undefined;
     // 老的属性中有，新的没有，要删除老的
     var oldStyles = oldProps.style || {};
     var newStyles = props.style || {};
@@ -744,8 +785,7 @@
     // 两方都有儿子
 
     var oldChildren = oldVNode.children || [];
-    var newChildren = vnode.child || [];
-    console.log(oldChildren, newChildren);
+    var newChildren = vnode.child || []; // console.log(oldChildren, newChildren);
 
     if (oldChildren.length > 0 && newChildren.length > 0) {
       // 需要完整diff算法
@@ -755,8 +795,7 @@
       mountChildren(el, newChildren);
     } else if (oldChildren.length > 0) {
       //新的没有老的有要删除
-      // el.innerHTML = ''
-      unmountChildren(el, oldChildren);
+      el.innerHTML = ''; // unmountChildren(el, oldChildren)
     } // console.log(oldChildren, newChildren);
 
 
@@ -770,13 +809,11 @@
     }
   }
 
-  function unmountChildren(el, children) {
-    children.forEach(function (child) {
-      return removeChild(el, child.el);
-    });
-  }
-
   function updateChildren(el, oldChildren, newChildren) {
+    // 我们操作列表经常会是有 push shift pop unshift reverse sort这些方法（针对这些情况做一个优化） 
+    // vue2中采用双指针的方式 比较两个节点
+    var oldStartIndex = 0;
+    var newStartIndex = 0;
     var oldEndIndex = oldChildren.length - 1;
     var newEndIndex = newChildren.length - 1;
     var oldStartVnode = oldChildren[0];
@@ -784,7 +821,93 @@
     var oldEndVnode = oldChildren[oldEndIndex];
     var newEndVnode = newChildren[newEndIndex];
 
-    console.log(oldStartVnode, newStartVnode, oldEndVnode, newEndVnode);
+    function makeIndexByKey(children) {
+      var map = {};
+      children.forEach(function (child, index) {
+        map[child.key] = index;
+      });
+      return map;
+    }
+
+    var map = makeIndexByKey(oldChildren);
+    console.log(map);
+
+    while (oldStartIndex <= oldEndIndex && newStartIndex <= newEndIndex) {
+      //有一个不满足就停止
+      // 双方有一方指针，大于尾部指针则停止循环
+      if (!oldStartVnode) {
+        oldStartVnode = oldChildren[++oldStartIndex];
+      } else if (!oldEndVnode) {
+        oldEndVnode = oldChildren[--oldEndIndex];
+      } else if (isSameVnode(oldStartVnode, newStartVnode)) {
+        patchVNode(oldStartVnode, newStartVnode); // 如果是相同节点，则递归比较子节点
+
+        oldStartVnode = oldChildren[++oldStartIndex];
+        newStartVnode = newChildren[++newStartIndex]; // 比较开头节点
+      } else if (isSameVnode(oldEndVnode, newEndVnode)) {
+        patchVNode(oldEndVnode, newEndVnode); // 如果是相同节点，则递归比较子节点
+
+        oldEndVnode = oldChildren[--oldEndIndex];
+        newEndVnode = newChildren[--newEndIndex]; // 比较开头节点
+      } else // 交叉比对 abcd => dabc
+        if (isSameVnode(oldEndVnode, newStartVnode)) {
+          patchVNode(oldEndVnode, newStartVnode); // insertBefore具备移动性 会将原来的元素移动
+
+          el.insertBefore(oldEndVnode.el, oldStartVnode.el); //将老的尾部移动到老的前面去
+
+          oldEndVnode = oldChildren[--oldEndIndex];
+          newStartVnode = newChildren[++newStartIndex];
+        } else if (isSameVnode(oldStartVnode, newEndVnode)) {
+          patchVNode(oldEndVnode, newStartVnode); // insertBefore具备移动性 会将原来的元素移动
+
+          el.insertBefore(oldStartVnode.el, oldStartVnode.el.nextSibling); //将老的尾部移动到老的头部
+
+          oldStartVnode = oldChildren[++oldStartIndex];
+          newEndVnode = newChildren[--newEndIndex];
+        } else {
+          // 在给动态列表添加key的时候，要尽量避免使用索引，因为索引前后都是从0开始，可能会发生错误复用
+          // 乱想比对
+          // 根据老的列表做一个映射关系，用新的去找，找到则移动，找不到则添加，最后多余的就删除
+          var moveIndex = map[newStartVnode.key]; // 如果拿到则说明是我要移动的索引
+
+          if (moveIndex !== undefined) {
+            var moveVnode = oldChildren[moveIndex];
+            el.insertBefore(moveVnode.el, oldStartVnode.el);
+            oldChildren[moveIndex] = undefined; //表示这个节点已经移动走了
+
+            patchVNode(moveVnode, newStartVnode); //比对属性和子节点
+          } else {
+            el.insertBefore(create(newStartVnode), oldStartVnode.el);
+          }
+
+          newStartVnode = newChildren[++newStartIndex];
+        }
+    }
+
+    if (newStartIndex <= newEndIndex) {
+      // 新的多了多于的插入进去
+      for (var i = newStartIndex; i <= newEndIndex; i++) {
+        var childEl = createElm(newChildren[i]); // el.appendChild(childEl)
+        // 这里可能向后追加，还有可能向前追加
+
+        var anchor = newChildren[newEndIndex + 1] ? newChildren[newEndIndex + 1].el : null; //获取下一个元素
+        // console.log(anchor);
+
+        el.insertBefore(childEl, anchor); // anchor 为null的时候则会认为是appendChild
+      }
+    }
+
+    if (oldStartIndex <= oldEndIndex) {
+      // 老的多了删掉老的
+      for (var _i = oldStartIndex; _i <= oldEndIndex; _i++) {
+        if (oldChildren[_i].el) {
+          var _childEl = oldChildren[_i].el;
+          el.removeChild(_childEl);
+        }
+      }
+    } // 我们为了比较两个儿子的时候  增强性能  我们会有些优化手段
+    // 如果批量向页面中修改出入内容，浏览器会自动优化
+
   }
 
   function initLifeCycle(Vue) {
@@ -793,6 +916,13 @@
       var vm = this;
       var el = vm.$el; // console.log(vnode, el);
       // patch既有初始化的功能，又有更新的功能
+      // const prevNode = vm._vnode
+      // vm._vnode = vnode; //把组件第一次产生的虚拟节点保存到_vnode上
+      // if(prevNode) { //之前渲染过了
+      //   vm.$el = patch(prevNode, vnode);
+      // } else {
+      //   vm.$el = patch(el, vnode);
+      // }
 
       vm.$el = patch(el, vnode);
     }; // _c('div',{}, ...children)
@@ -1172,6 +1302,8 @@
     };
   }
 
+  // import compileToFunction from "./compiler";
+
   function Vue(options) {
     // options就是用户的选项
     this._init(options); // 默认调用了init
@@ -1185,31 +1317,6 @@
   initGlobalAPI(Vue); //实现全局api
 
   initStateMixin(Vue); //实现了nextTick、$watch
-  // 测试
-
-  var render1 = compileToFunction("<ul key=\"a\" style=\"color: red\">\n  <li key='a'>a</li>\n  <li key='b'>b</li>\n  <li key='c'>c</li>\n</ul>");
-  var vm = new Vue({
-    data: {
-      name: 'zs'
-    }
-  });
-  var prevNode = render1.call(vm);
-  var el = createElm(prevNode);
-  document.body.appendChild(el);
-  var render2 = compileToFunction("<ul key=\"b\" style=\"color: #000;background: #bfc\">\n  <li key='a'>a</li>\n  <li key='b'>b</li>\n  <li key='c'>c</li>\n  <li key='d'>d</li>\n</ul>");
-  var vm2 = new Vue({
-    data: {
-      name: '王五'
-    }
-  });
-  var nextNode = render2.call(vm2); // console.log(prevNode, nextNode);
-  // 直接将新的节点替换掉了老的，不是直接替换，而是比较两个人的区别之后在替换，diff算法
-  // diff算法是一个平级比较的过程 父亲和父亲比 儿子和儿子比
-
-  setTimeout(function () {
-    patch(prevNode, nextNode); // let newEl = createElm(nextNode)
-    // el.parentNode.replaceChild(newEl, el)
-  }, 1000);
 
   return Vue;
 

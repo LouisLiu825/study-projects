@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div id="app">
+    {{name}}
+  </div>
+  <div id="root">
+
+  </div>
+  <script src="vue.js"></script>
+  <script>
+    // 根实例
+    // 组件的三大特性  自定义标签  组件里面有自己的属性和事件 组件的插槽
+    // 声明组件  全局组件 Vue.extend
+    Vue.component('my-button', Vue.extend({
+      template: '<button>点我啊</button>'
+    }))
+
+    // 在处理属性的时候 要维护一下 components: {my-button}.__proto__ = my-button
+    let Sub = Vue.extend({
+      template: '<button>点我啊<my-button></my-button></button>',
+      components: {
+        'my-button': {
+          template: '<button>点我啊</button>'
+        }
+      }
+    })
+    // new Sub().$mount('#root')
+    const vm = new Vue({
+      el: '#app',
+      data(){
+       return {
+        name: 'zs',
+        age: 13
+       }
+      },
+    });
+    vm.$mount('#app')
+
+    // setTimeout(() => {
+    //   vm.name = '王五'
+    // }, 1000)
+  </script>
+</body>
+</html>

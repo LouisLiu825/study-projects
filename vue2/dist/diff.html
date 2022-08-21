@@ -8,6 +8,7 @@
 </head>
 <body>
   <div id="app">
+    {{name}}
   </div>
   <script src="vue.js"></script>
   <script>
@@ -15,13 +16,19 @@
     // 在之前的更新中每次更新，都会产生新的虚拟节点，通过新的虚拟节点生成真实节点，替换掉老的节点
     // 第一次渲染时候我们会产生虚拟节点，第二次更新我们也会调用render方法产生新的虚拟节点，对比出需要更新的内容更新部分内容
     // 2.组件渲染原理    
-    // const vm = new Vue({
-    //   el: '#app',
-    //   data: {
-    //     name: 'zs',
-    //     age: 13
-    //   },
-    // });
+    const vm = new Vue({
+      el: '#app',
+      data(){
+       return {
+        name: 'zs',
+        age: 13
+       }
+      },
+    });
+
+    setTimeout(() => {
+      vm.name = '王五'
+    }, 1000)
   </script>
 </body>
 </html>

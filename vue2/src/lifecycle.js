@@ -11,6 +11,13 @@ export function initLifeCycle(Vue) {
     const el = vm.$el
     // console.log(vnode, el);
     // patch既有初始化的功能，又有更新的功能
+    // const prevNode = vm._vnode
+    // vm._vnode = vnode; //把组件第一次产生的虚拟节点保存到_vnode上
+    // if(prevNode) { //之前渲染过了
+    //   vm.$el = patch(prevNode, vnode);
+    // } else {
+    //   vm.$el = patch(el, vnode);
+    // }
     vm.$el = patch(el, vnode);
   }
   // _c('div',{}, ...children)

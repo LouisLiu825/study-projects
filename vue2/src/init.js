@@ -27,12 +27,10 @@ export function initMixin(Vue) {
       if(!ops.template && el) { // 没有模板但是有el
         template = el.outerHTML
       } else {
-        if(el) {
-          template = ops.template; // 有el，就才用模板中的内容
-        }
+        template = ops.template; // 有el，就才用模板中的内容
       }
       // 有template就用template
-      if(template) {
+      if(template) { // 只要模板就挂载
         const render = compileToFunction(template);
         ops.render = render;
       }
